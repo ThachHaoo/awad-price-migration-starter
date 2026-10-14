@@ -6,6 +6,9 @@
 //   DURATION=0        seconds, 0 = until Ctrl+C
 //   NEW_CLIENTS=0     share of requests from new clients (0..1) — they send and
 //                     expect `priceVnd`; turn it on once your API offers it
+//   NEW_CLIENTS_FILE= optional; if set, this file is read every second and a number
+//                     in [0, 1] there replaces NEW_CLIENTS without a restart, e.g.
+//                     Set-Content -Encoding ascii new-clients.txt 0.3 (Windows) / echo 0.3 > new-clients.txt (Linux) once priceVnd is live
 //   IDS=2000          menu ids 1..IDS are used; 1..50 are never re-priced
 //   LOG=traffic-log.txt
 //
@@ -13,11 +16,12 @@
 // does not show the last acknowledged write ("stale"), and any moment when NO
 // instance answers ("unavailable"). One instance being down while another
 // answers is a rolling restart, not a failure — it is counted as "rerouted".
-import { appendFileSync } from 'node:fs';
+import { appendFileSync, readFileSync } from 'node:fs';
 
 const TARGETS = (process.env.TARGETS ?? 'http://localhost:3001,http://localhost:3002').split(',');
 const DURATION = Number(process.env.DURATION ?? 0);
-const NEW_CLIENTS = Number(process.env.NEW_CLIENTS ?? 0);
+let NEW_CLIENTS = Number(process.env.NEW_CLIENTS ?? 0);
+const NEW_CLIENTS_FILE = process.env.NEW_CLIENTS_FILE;
 const IDS = Number(process.env.IDS ?? 2000);
 const LOG = process.env.LOG ?? 'traffic-log.txt';
 const WORKERS = 8;
@@ -167,12 +171,39 @@ const bad = () => n.error + n.contract + n.stale + n.unavailable;
 const tick = setInterval(() =>
   log(`${ts()} ok=${n.ok} error=${n.error} contract=${n.contract} stale=${n.stale} unavailable=${n.unavailable} rerouted=${n.rerouted}`), 5000);
 
+// Let NEW_CLIENTS change mid-run, so one continuous run covers the whole migration.
+let warned = null; // last problem logged, so each one is logged once
+function pollNewClients() {
+  let text, problem;
+  try {
+    text = readFileSync(NEW_CLIENTS_FILE, 'utf8').replace(/^\uFEFF/, '').trim();
+    const v = Number(text);
+    if (text !== '' && Number.isFinite(v) && v >= 0 && v <= 1) {
+      warned = null;
+      if (v !== NEW_CLIENTS) {
+        log(`${ts()} new clients ${NEW_CLIENTS} -> ${v} (from ${NEW_CLIENTS_FILE})`);
+        NEW_CLIENTS = v;
+      }
+      return;
+    }
+    problem = `not a number in [0, 1]: ${JSON.stringify(text.slice(0, 40))}`;
+  } catch (e) {
+    problem = `cannot read (${e.code ?? e.message})`;
+  }
+  if (problem !== warned) {
+    log(`${ts()} WARNING ${NEW_CLIENTS_FILE} ${problem}; new clients stay at ${NEW_CLIENTS}`);
+    warned = problem;
+  }
+}
+const poll = NEW_CLIENTS_FILE ? setInterval(pollNewClients, 1000) : null;
+
 await Promise.all(Array.from({ length: WORKERS }, async () => {
   while (!stop) {
     try { await once(); } catch (e) { fail('error', `client crash: ${e.message}`); }
   }
 }));
 clearInterval(tick);
+clearInterval(poll);
 log(`${ts()} FINAL ok=${n.ok} error=${n.error} contract=${n.contract} stale=${n.stale} unavailable=${n.unavailable} rerouted=${n.rerouted}`);
 log(bad() === 0 ? 'RESULT: zero failed requests' : `RESULT: ${bad()} failed requests`);
 process.exit(bad() === 0 ? 0 : 1);
