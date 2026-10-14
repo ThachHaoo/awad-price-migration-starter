@@ -1,8 +1,10 @@
 import { createServer } from 'node:http';
 
-// v2 of the menu service. Prices used to be stored in THOUSANDS of dong, as a float:
-// 45.5 means 45,500 đ. IA#2 undoes it: writes now fill both price and price_vnd
-// (whole dong), reads still come from price.
+// v3 of the menu service: read new, write both. Prices used to be stored in
+// THOUSANDS of dong, as a float: 45.5 means 45,500 đ. IA#2 undoes it: reads now
+// come from price_vnd (whole dong), writes still fill both price and price_vnd
+// so an older version can still run against the same data.
+// Needs scripts/backfill.js to have finished: a row with price_vnd NULL has no price here.
 
 const json = (res, status, body) => {
   res.writeHead(status, { 'content-type': 'application/json' });
@@ -37,8 +39,8 @@ function readPrice(body) {
 
 export function createApp(db) {
   const q = {
-    list: db.prepare('SELECT id, name, price FROM menu_items ORDER BY id LIMIT ? OFFSET ?'),
-    get: db.prepare('SELECT id, name, price FROM menu_items WHERE id = ?'),
+    list: db.prepare('SELECT id, name, price_vnd FROM menu_items ORDER BY id LIMIT ? OFFSET ?'),
+    get: db.prepare('SELECT id, name, price_vnd FROM menu_items WHERE id = ?'),
     insert: db.prepare('INSERT INTO menu_items (name, price, price_vnd) VALUES (?, ?, ?)'),
     setPrice: db.prepare('UPDATE menu_items SET price = ?, price_vnd = ? WHERE id = ?'),
     insertOrder: db.prepare("INSERT INTO orders (created_at) VALUES (datetime('now'))"),
@@ -48,8 +50,8 @@ export function createApp(db) {
   const view = (row) => ({
     id: row.id,
     name: row.name,
-    price: row.price,
-    priceVnd: row.price === null ? null : Math.round(row.price * 1000),
+    price: row.price_vnd === null ? null : row.price_vnd / 1000,
+    priceVnd: row.price_vnd,
   });
 
   async function handle(req, res) {
@@ -97,15 +99,16 @@ export function createApp(db) {
       db.exec('BEGIN IMMEDIATE');
       try {
         const { lastInsertRowid: orderId } = q.insertOrder.run();
-        let total = 0;
+        let totalVnd = 0;                                    // whole dong, so no float sums
         for (const { menuItemId, qty } of body.items) {
           const item = q.get.get(menuItemId);
-          if (!item || !Number.isInteger(qty) || qty < 1) throw Object.assign(new Error(), { status: 400 });
-          q.insertLine.run(orderId, item.id, qty, item.price);
-          total += item.price * qty;
+          if (!item || item.price_vnd === null || !Number.isInteger(qty) || qty < 1)
+            throw Object.assign(new Error(), { status: 400 });
+          q.insertLine.run(orderId, item.id, qty, item.price_vnd / 1000);  // unit_price stays in thousands
+          totalVnd += item.price_vnd * qty;
         }
         db.exec('COMMIT');
-        return json(res, 201, { id: Number(orderId), total: Math.round(total * 1000) / 1000 });
+        return json(res, 201, { id: Number(orderId), total: totalVnd / 1000 });
       } catch (e) {
         db.exec('ROLLBACK');
         if (e.status === 400) return error(res, 400, 'invalid_item', 'unknown menuItemId or bad qty');

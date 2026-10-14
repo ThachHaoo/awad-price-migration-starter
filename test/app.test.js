@@ -10,7 +10,8 @@ before(async () => {
   const dir = new URL('../migrations/', import.meta.url);
   for (const f of readdirSync(dir).filter((f) => f.endsWith('.up.sql')).sort())
     db.exec(readFileSync(new URL(f, dir), 'utf8'));          // every migration, in order
-  db.exec("INSERT INTO menu_items (name, price) VALUES ('Phở bò', 45.5), ('Trà đá', 5)");
+  // both columns filled, as after scripts/backfill.js
+  db.exec("INSERT INTO menu_items (name, price, price_vnd) VALUES ('Phở bò', 45.5, 45500), ('Trà đá', 5, 5000)");
   server = createApp(db).listen(0);
   await new Promise((r) => server.once('listening', r));
   base = `http://localhost:${server.address().port}`;
@@ -85,7 +86,7 @@ test('priceVnd must be an integer', async () => {
   assert.equal(post.body.error, 'invalid_body');
   const patch = await call('PATCH', '/menu/1', { priceVnd: 45500.5 });
   assert.equal(patch.status, 400);
-  assert.deepEqual(stored(1), { price: 45.5, price_vnd: null });   // untouched
+  assert.deepEqual(stored(1), { price: 45.5, price_vnd: 45500 });  // untouched
 });
 
 test('price and priceVnd must agree when both are sent', async () => {
