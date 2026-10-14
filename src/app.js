@@ -1,7 +1,8 @@
 import { createServer } from 'node:http';
 
-// v1 of the menu service. Prices are stored in THOUSANDS of dong, as a float:
-// 45.5 means 45,500 đ. That was last year's decision; IA#2 undoes it.
+// v2 of the menu service. Prices used to be stored in THOUSANDS of dong, as a float:
+// 45.5 means 45,500 đ. IA#2 undoes it: writes now fill both price and price_vnd
+// (whole dong), reads still come from price.
 
 const json = (res, status, body) => {
   res.writeHead(status, { 'content-type': 'application/json' });
@@ -17,18 +18,39 @@ async function readBody(req) {
 }
 
 const isPrice = (p) => typeof p === 'number' && Number.isFinite(p) && p > 0 && p <= 100000;
+const isPriceVnd = (p) => Number.isInteger(p) && p > 0 && p <= 100000 * 1000;
+
+// Accepts price (thousands of dong) or priceVnd (dong), or both if they agree.
+// Returns { price, priceVnd } for both columns, or { error } with a message.
+function readPrice(body) {
+  const hasPrice = body.price !== undefined;
+  const hasVnd = body.priceVnd !== undefined;
+  if (!hasPrice && !hasVnd) return { error: 'price (thousands of dong) or priceVnd (dong) is required' };
+  if (hasPrice && !isPrice(body.price)) return { error: 'price must be a positive number of thousands of dong' };
+  if (hasVnd && !isPriceVnd(body.priceVnd)) return { error: 'priceVnd must be a positive integer of dong' };
+  if (hasPrice && hasVnd && Math.round(body.price * 1000) !== body.priceVnd)
+    return { error: 'price and priceVnd disagree' };
+  return hasPrice
+    ? { price: body.price, priceVnd: Math.round(body.price * 1000) }
+    : { price: body.priceVnd / 1000, priceVnd: body.priceVnd };
+}
 
 export function createApp(db) {
   const q = {
     list: db.prepare('SELECT id, name, price FROM menu_items ORDER BY id LIMIT ? OFFSET ?'),
     get: db.prepare('SELECT id, name, price FROM menu_items WHERE id = ?'),
-    insert: db.prepare('INSERT INTO menu_items (name, price) VALUES (?, ?)'),
-    setPrice: db.prepare('UPDATE menu_items SET price = ? WHERE id = ?'),
+    insert: db.prepare('INSERT INTO menu_items (name, price, price_vnd) VALUES (?, ?, ?)'),
+    setPrice: db.prepare('UPDATE menu_items SET price = ?, price_vnd = ? WHERE id = ?'),
     insertOrder: db.prepare("INSERT INTO orders (created_at) VALUES (datetime('now'))"),
     insertLine: db.prepare('INSERT INTO order_items (order_id, menu_item_id, qty, unit_price) VALUES (?, ?, ?, ?)'),
   };
 
-  const view = (row) => ({ id: row.id, name: row.name, price: row.price });
+  const view = (row) => ({
+    id: row.id,
+    name: row.name,
+    price: row.price,
+    priceVnd: row.price === null ? null : Math.round(row.price * 1000),
+  });
 
   async function handle(req, res) {
     const url = new URL(req.url, 'http://x');
@@ -44,9 +66,11 @@ export function createApp(db) {
       }
       if (req.method === 'POST') {
         const body = await readBody(req);
-        if (!body || typeof body.name !== 'string' || !body.name || !isPrice(body.price))
-          return error(res, 400, 'invalid_body', 'name (string) and price (thousands of dong) are required');
-        const { lastInsertRowid } = q.insert.run(body.name, body.price);
+        if (!body || typeof body.name !== 'string' || !body.name)
+          return error(res, 400, 'invalid_body', 'name (string) is required');
+        const p = readPrice(body);
+        if (p.error) return error(res, 400, 'invalid_body', p.error);
+        const { lastInsertRowid } = q.insert.run(body.name, p.price, p.priceVnd);
         return json(res, 201, view(q.get.get(lastInsertRowid)));
       }
     }
@@ -58,9 +82,10 @@ export function createApp(db) {
       if (req.method === 'GET') return json(res, 200, view(row));
       if (req.method === 'PATCH') {
         const body = await readBody(req);
-        if (!body || !isPrice(body.price))
-          return error(res, 400, 'invalid_body', 'price (thousands of dong) is required');
-        q.setPrice.run(body.price, id);
+        if (!body) return error(res, 400, 'invalid_body', 'body must be JSON');
+        const p = readPrice(body);
+        if (p.error) return error(res, 400, 'invalid_body', p.error);
+        q.setPrice.run(p.price, p.priceVnd, id);
         return json(res, 200, view(q.get.get(id)));
       }
     }
