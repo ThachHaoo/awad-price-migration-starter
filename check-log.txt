@@ -1,0 +1,137 @@
+
+=== step 0 - v1 on A and B - schema 001 - 19:21:25.84
+columns                id, name, price
+rows                   20000
+CONSISTENT
+
+=== step 1 - 002 expand - v1 on A and B - 19:22:09.72
+columns                id, name, price, price_vnd
+rows                   20744
+price_vnd_null         20744
+price_vnd_not_integer  0
+disagree               0
+CONSISTENT, but 20744 rows have no price_vnd yet — nothing may read price_vnd until they do
+
+=== step 2a - A=v2 B=v1 - 19:22:23.98
+columns                id, name, price, price_vnd
+rows                   21090
+price_vnd_null         20192
+price_vnd_not_integer  0
+disagree               166
+INCONSISTENT
+
+=== step 2 - v2 on A and B - 19:22:38.04
+columns                id, name, price, price_vnd
+rows                   21419
+price_vnd_null         19368
+price_vnd_not_integer  0
+disagree               97
+INCONSISTENT
+
+=== step 3 - after backfill - 19:23:10.11
+columns                id, name, price, price_vnd
+rows                   22042
+price_vnd_null         0
+price_vnd_not_integer  0
+disagree               0
+CONSISTENT
+
+=== step 4 - v3 on A and B - 19:23:37.75
+columns                id, name, price, price_vnd
+rows                   22747
+price_vnd_null         0
+price_vnd_not_integer  0
+disagree               0
+CONSISTENT
+
+=== rollback - v3 to v2 on A and B under traffic - 19:24:11.79
+columns                id, name, price, price_vnd
+rows                   23617
+price_vnd_null         0
+price_vnd_not_integer  0
+disagree               0
+CONSISTENT
+
+=== roll forward - v2 to v3 on A and B - 19:24:49.50
+columns                id, name, price, price_vnd
+rows                   24466
+price_vnd_null         0
+price_vnd_not_integer  0
+disagree               0
+CONSISTENT
+
+=== step 5 - v4 on A and B - point of no return - 19:25:19.84
+columns                id, name, price, price_vnd
+rows                   25121
+price_vnd_null         0
+price_vnd_not_integer  0
+disagree               1527
+INCONSISTENT
+
+=== step 6 - 003 contract - v4 on A and B - 19:25:33.33
+columns                id, name, price_vnd
+rows                   25389
+price_vnd_null         0
+price_vnd_not_integer  0
+CONSISTENT
+
+=== down-test - separate DB file data\downtest.db
+
+--- node ..\ia2-wt\base\scripts\migrate.js up
+applied  001_init
+
+--- node scripts\seed.js 1000
+seeded 1000 menu items
+
+--- node ..\ia2-wt\v2\scripts\migrate.js up
+applied  002_add_price_vnd
+
+--- node scripts\backfill.js
+rows to backfill: 1000 (batch 500, pause 50 ms)
+updated 1000 rows in 2 batches, 0.1 s
+done: no rows left to backfill
+
+=== down-test - 002 applied and backfilled - 19:27:29.99
+columns                id, name, price, price_vnd
+rows                   1000
+price_vnd_null         0
+price_vnd_not_integer  0
+disagree               0
+CONSISTENT
+
+--- node ..\ia2-wt\v2\scripts\migrate.js down
+reverted 002_add_price_vnd
+
+=== down-test - after migrate:down of 002 - 19:27:39.02
+columns                id, name, price
+rows                   1000
+CONSISTENT
+
+--- node ..\ia2-wt\v2\scripts\migrate.js up
+applied  002_add_price_vnd
+
+--- node scripts\backfill.js
+rows to backfill: 1000 (batch 500, pause 50 ms)
+updated 1000 rows in 2 batches, 0.1 s
+done: no rows left to backfill
+
+--- node scripts\migrate.js up
+applied  003_drop_price
+
+=== down-test - 003 applied - 19:27:44.13
+columns                id, name, price_vnd
+rows                   1000
+price_vnd_null         0
+price_vnd_not_integer  0
+CONSISTENT
+
+--- node scripts\migrate.js down
+reverted 003_drop_price
+
+=== down-test - after migrate:down of 003 - 19:27:50.03
+columns                id, name, price_vnd, price
+rows                   1000
+price_vnd_null         0
+price_vnd_not_integer  0
+disagree               0
+CONSISTENT

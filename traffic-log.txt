@@ -1,0 +1,76 @@
+
+=== traffic start 2026-10-14T12:21:37.735Z · targets http://localhost:3001 http://localhost:3002 · new clients 0
+   5.1s ok=5197 error=0 contract=0 stale=0 unavailable=0 rerouted=0
+  10.1s ok=11347 error=0 contract=0 stale=0 unavailable=0 rerouted=0
+  15.1s ok=17246 error=0 contract=0 stale=0 unavailable=0 rerouted=0
+  20.1s ok=22731 error=0 contract=0 stale=0 unavailable=0 rerouted=0
+  25.1s ok=28159 error=0 contract=0 stale=0 unavailable=0 rerouted=0
+  30.1s ok=34216 error=0 contract=0 stale=0 unavailable=0 rerouted=0
+  35.1s ok=39734 error=0 contract=0 stale=0 unavailable=0 rerouted=0
+  37.0s http://localhost:3001 down (ECONNRESET)
+  37.6s http://localhost:3001 back
+  40.1s ok=47318 error=0 contract=0 stale=0 unavailable=0 rerouted=7
+  45.1s ok=52905 error=0 contract=0 stale=0 unavailable=0 rerouted=7
+  50.1s ok=57737 error=0 contract=0 stale=0 unavailable=0 rerouted=7
+  52.0s http://localhost:3002 down (ECONNRESET)
+  52.6s http://localhost:3002 back
+  55.1s ok=65639 error=0 contract=0 stale=0 unavailable=0 rerouted=18
+  60.1s ok=71397 error=0 contract=0 stale=0 unavailable=0 rerouted=18
+  65.1s ok=76502 error=0 contract=0 stale=0 unavailable=0 rerouted=18
+  66.2s new clients 0 -> 0.3 (from data\nc.txt)
+  70.1s ok=81387 error=0 contract=0 stale=0 unavailable=0 rerouted=18
+  75.1s ok=86251 error=0 contract=0 stale=0 unavailable=0 rerouted=18
+  80.1s ok=92113 error=0 contract=0 stale=0 unavailable=0 rerouted=18
+  85.1s ok=97354 error=0 contract=0 stale=0 unavailable=0 rerouted=18
+  90.1s ok=102124 error=0 contract=0 stale=0 unavailable=0 rerouted=18
+  95.1s ok=106992 error=0 contract=0 stale=0 unavailable=0 rerouted=18
+ 100.1s ok=112103 error=0 contract=0 stale=0 unavailable=0 rerouted=18
+ 100.3s http://localhost:3001 down (ECONNRESET)
+ 100.9s http://localhost:3001 back
+ 105.1s ok=119827 error=0 contract=0 stale=0 unavailable=0 rerouted=31
+ 110.2s ok=125172 error=0 contract=0 stale=0 unavailable=0 rerouted=31
+ 113.3s http://localhost:3002 down (ECONNRESET)
+ 113.9s http://localhost:3002 back
+ 115.2s ok=132458 error=0 contract=0 stale=0 unavailable=0 rerouted=38
+ 120.2s ok=137965 error=0 contract=0 stale=0 unavailable=0 rerouted=38
+ 125.2s ok=143057 error=0 contract=0 stale=0 unavailable=0 rerouted=38
+ 128.2s http://localhost:3001 down (ECONNRESET)
+ 128.8s http://localhost:3001 back
+ 130.2s ok=150716 error=0 contract=0 stale=0 unavailable=0 rerouted=47
+ 135.2s ok=156520 error=0 contract=0 stale=0 unavailable=0 rerouted=47
+ 140.2s ok=162109 error=0 contract=0 stale=0 unavailable=0 rerouted=47
+ 145.2s ok=167709 error=0 contract=0 stale=0 unavailable=0 rerouted=47
+ 146.6s http://localhost:3002 down (ECONNRESET)
+ 147.2s http://localhost:3002 back
+ 150.2s ok=175444 error=0 contract=0 stale=0 unavailable=0 rerouted=57
+ 155.2s ok=181500 error=0 contract=0 stale=0 unavailable=0 rerouted=57
+ 160.2s ok=186202 error=0 contract=0 stale=0 unavailable=0 rerouted=57
+ 164.6s http://localhost:3001 down (ECONNREFUSED)
+ 165.2s ok=193054 error=0 contract=0 stale=0 unavailable=0 rerouted=62
+ 165.2s http://localhost:3001 back
+ 170.2s ok=199145 error=0 contract=0 stale=0 unavailable=0 rerouted=62
+ 175.2s ok=204420 error=0 contract=0 stale=0 unavailable=0 rerouted=62
+ 178.1s http://localhost:3002 down (ECONNREFUSED)
+ 178.7s http://localhost:3002 back
+ 180.2s ok=210277 error=0 contract=0 stale=0 unavailable=0 rerouted=68
+ 185.2s ok=215126 error=0 contract=0 stale=0 unavailable=0 rerouted=68
+ 190.2s ok=219748 error=0 contract=0 stale=0 unavailable=0 rerouted=68
+ 195.2s ok=223728 error=0 contract=0 stale=0 unavailable=0 rerouted=68
+ 199.0s http://localhost:3001 down (ECONNRESET)
+ 199.6s http://localhost:3001 back
+ 200.2s ok=229225 error=0 contract=0 stale=0 unavailable=0 rerouted=72
+ 205.2s ok=234550 error=0 contract=0 stale=0 unavailable=0 rerouted=72
+ 210.2s ok=239766 error=0 contract=0 stale=0 unavailable=0 rerouted=72
+ 212.2s http://localhost:3002 down (ECONNREFUSED)
+ 212.8s http://localhost:3002 back
+ 215.2s ok=244955 error=0 contract=0 stale=0 unavailable=0 rerouted=78
+ 220.2s ok=250271 error=0 contract=0 stale=0 unavailable=0 rerouted=78
+ 225.2s ok=255564 error=0 contract=0 stale=0 unavailable=0 rerouted=78
+ 230.2s ok=260250 error=0 contract=0 stale=0 unavailable=0 rerouted=78
+ 235.2s ok=265684 error=0 contract=0 stale=0 unavailable=0 rerouted=78
+ 240.2s ok=270452 error=0 contract=0 stale=0 unavailable=0 rerouted=78
+ 245.2s ok=275703 error=0 contract=0 stale=0 unavailable=0 rerouted=78
+ 250.2s ok=280511 error=0 contract=0 stale=0 unavailable=0 rerouted=78
+ 255.2s ok=285452 error=0 contract=0 stale=0 unavailable=0 rerouted=78
+ 255.7s FINAL ok=285960 error=0 contract=0 stale=0 unavailable=0 rerouted=78
+RESULT: zero failed requests
